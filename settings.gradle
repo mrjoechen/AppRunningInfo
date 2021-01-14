@@ -1,2 +1,3 @@
+include ':Performanceinfo'
 include ':app'
 rootProject.name = "AppRunningInfo"
