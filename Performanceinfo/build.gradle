@@ -32,6 +32,10 @@ android {
     }
 }
 
+apply from: '../bintray-config.gradle'
+apply from: '../installv1.gradle'
+apply from: '../bintrayv1.gradle'
+
 dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"

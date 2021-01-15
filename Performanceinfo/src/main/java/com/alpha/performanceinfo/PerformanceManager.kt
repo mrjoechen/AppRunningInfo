@@ -6,6 +6,7 @@ import android.os.*
 import android.text.TextUtils
 import android.util.Log
 import android.view.Choreographer
+import com.alpha.performanceinfo.Utils
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -16,7 +17,7 @@ import java.io.InputStreamReader
  */
 class PerformanceManager private constructor() {
 
-    val TAG = "PerferenceManager"
+    val TAG = "PerformanceManager"
 
     companion object {
         fun get() = Holder.holder
@@ -37,6 +38,8 @@ class PerformanceManager private constructor() {
 
     private lateinit var context: Context
 
+    private var aboveAndroidO = false
+
     fun init(context: Context) {
 
         this.context = context
@@ -46,6 +49,8 @@ class PerformanceManager private constructor() {
         if (mHandler == null) {
             mHandler = Handler(mHandlerThread.looper)
         }
+
+        aboveAndroidO = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
 
         startMonitorCpuInfo()
         startMonitorFpsInfo()
@@ -58,7 +63,7 @@ class PerformanceManager private constructor() {
 
         val cpuRunnable = object : Runnable{
             override fun run() {
-                val cpuDataForO = getCpuDataForO()
+                val cpuDataForO = if (aboveAndroidO) Utils.getCpuDataForO() else Utils.getCPUData()
                 Log.d(TAG, "cpu: " + cpuDataForO + "%")
                 mHandler?.postDelayed(this, 1000)
             }
@@ -126,104 +131,6 @@ class PerformanceManager private constructor() {
             e.printStackTrace()
         }
         return mem
-    }
-
-
-    /**
-     * 8.0以上获取cpu的方式
-     *
-     * @return
-     */
-    fun getCpuDataForO(): Float {
-        var process: java.lang.Process? = null
-        try {
-            process = Runtime.getRuntime().exec("top -n 1")
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            var line: String
-            var cpuIndex = -1
-            while (reader.readLine().also { line = it } != null) {
-                line = line.trim { it <= ' ' }
-                if (TextUtils.isEmpty(line)) {
-                    continue
-                }
-                val tempIndex = getCPUIndex(line)
-                if (tempIndex != -1) {
-                    cpuIndex = tempIndex
-                    continue
-                }
-                if (line.startsWith(Process.myPid().toString())) {
-                    if (cpuIndex == -1) {
-                        continue
-                    }
-                    val param = line.split("\\s+".toRegex()).toTypedArray()
-                    if (param.size <= cpuIndex) {
-                        continue
-                    }
-                    var cpu = param[cpuIndex]
-                    if (cpu.endsWith("%")) {
-                        cpu = cpu.substring(0, cpu.lastIndexOf("%"))
-                    }
-                    return cpu.toFloat() / Runtime.getRuntime().availableProcessors()
-                }
-            }
-        } catch (e: IOException) {
-            e.printStackTrace()
-        } finally {
-            process?.destroy()
-        }
-        return 0f
-    }
-
-
-    /**
-     * 8.0一下获取cpu的方式
-     *
-     * @return
-     */
-    //    private float getCPUData() {
-    //        long cpuTime;
-    //        long appTime;
-    //        float value = 0.0f;
-    //        try {
-    //            if (mProcStatFile == null || mAppStatFile == null) {
-    //                mProcStatFile = new RandomAccessFile("/proc/stat", "r");
-    //                mAppStatFile = new RandomAccessFile("/proc/" + android.os.Process.myPid() + "/stat", "r");
-    //            } else {
-    //                mProcStatFile.seek(0L);
-    //                mAppStatFile.seek(0L);
-    //            }
-    //            String procStatString = mProcStatFile.readLine();
-    //            String appStatString = mAppStatFile.readLine();
-    //            String procStats[] = procStatString.split(" ");
-    //            String appStats[] = appStatString.split(" ");
-    //            cpuTime = Long.parseLong(procStats[2]) + Long.parseLong(procStats[3])
-    //                    + Long.parseLong(procStats[4]) + Long.parseLong(procStats[5])
-    //                    + Long.parseLong(procStats[6]) + Long.parseLong(procStats[7])
-    //                    + Long.parseLong(procStats[8]);
-    //            appTime = Long.parseLong(appStats[13]) + Long.parseLong(appStats[14]);
-    //            if (mLastCpuTime == null && mLastAppCpuTime == null) {
-    //                mLastCpuTime = cpuTime;
-    //                mLastAppCpuTime = appTime;
-    //                return value;
-    //            }
-    //            value = ((float) (appTime - mLastAppCpuTime) / (float) (cpuTime - mLastCpuTime)) * 100f;
-    //            mLastCpuTime = cpuTime;
-    //            mLastAppCpuTime = appTime;
-    //        } catch (Exception e) {
-    //            e.printStackTrace();
-    //        }
-    //        return value;
-    //    }
-    private fun getCPUIndex(line: String): Int {
-        if (line.contains("CPU")) {
-            val titles = line.split("\\s+".toRegex()).toTypedArray()
-            for (i in titles.indices) {
-                if (titles[i].contains("CPU")) {
-                    return i
-                }
-            }
-        }
-        return -1
     }
 
 
