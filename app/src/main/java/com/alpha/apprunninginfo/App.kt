@@ -2,6 +2,7 @@ package com.alpha.apprunninginfo
 
 import android.app.Application
 import com.alpha.perfermanceinfo.PerformanceManager
+import com.didichuxing.doraemonkit.DoraemonKit
 
 
 class App: Application() {
@@ -11,8 +12,7 @@ class App: Application() {
 //        val kits: MutableList<AbstractKit> = ArrayList()
 //        kits.add(CpuKit())
 //        DoraemonKit.install(this, "f55c2239680ed641a5ab0caf38fb190b")
-
-        PerformanceManager.get().init(this)
+//        PerformanceManager.get().init(this)
     }
 
 }
