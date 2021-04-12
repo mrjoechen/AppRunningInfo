@@ -6,6 +6,7 @@ import android.graphics.PixelFormat;
 import android.os.Build;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -41,11 +42,11 @@ public class PerformanceInfoWindowUtil {
         contactView = (ViewGroup) LayoutInflater.from(mContext).inflate(R.layout.view_info, null);
         if (layoutParams == null) {
             layoutParams = new WindowManager.LayoutParams();
-            layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+            layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
             layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-            layoutParams.x = 0;
-            layoutParams.y = 0;
-            layoutParams.gravity = Gravity.TOP | Gravity.LEFT;
+//            layoutParams.x = 0;
+//            layoutParams.y = ScreenSizeUtil.getStatusBarHeight(mContext);
+            layoutParams.gravity = Gravity.TOP | Gravity.CENTER;
             if (Build.VERSION.SDK_INT > 18 && Build.VERSION.SDK_INT < 23) {
                 layoutParams.type = WindowManager.LayoutParams.TYPE_TOAST;
             } else {
@@ -60,6 +61,7 @@ public class PerformanceInfoWindowUtil {
         tvFps = contactView.findViewById(R.id.tv_fps);
 
 
+        contactView.setOnTouchListener(onTouchListener);
         contactView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -69,7 +71,31 @@ public class PerformanceInfoWindowUtil {
         windowManager.addView(contactView, layoutParams);
     }
 
+    private int mTouchStartX, mTouchStartY, mStartX, mStartY, mTouchCurrentX, mTouchCurrentY;
 
+    View.OnTouchListener onTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    mTouchStartX = (int) event.getRawX();
+                    mTouchStartY = (int) event.getRawY();
+                    mStartX = (int) event.getX();
+                    mStartY = (int) event.getY();
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    mTouchCurrentX = (int) event.getRawX();
+                    mTouchCurrentY = (int) event.getRawY();
+                    layoutParams.x += mTouchCurrentX - mTouchStartX;
+                    layoutParams.y += mTouchCurrentY - mTouchStartY;
+                    windowManager.updateViewLayout(contactView, layoutParams);
+
+                    mTouchStartX = mTouchCurrentX;
+                    mTouchStartY = mTouchCurrentY;
+            }
+            return true;
+        }
+    };
 
     public void hideAllView() {
         hideContactView();

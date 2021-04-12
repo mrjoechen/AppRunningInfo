@@ -10,6 +10,9 @@ import com.alpha.perfermanceinfo.PerformanceManager
 
 class ApplicationContextProvider: ContentProvider() {
 
+    companion object{
+        var application: Application? = null
+    }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
         return null
@@ -20,7 +23,8 @@ class ApplicationContextProvider: ContentProvider() {
     }
 
     override fun onCreate(): Boolean {
-        PerformanceManager.get().init(context!!.applicationContext as Application)
+        application = context!!.applicationContext as Application
+        PerformanceManager.get().init(application!!)
         return true
     }
 

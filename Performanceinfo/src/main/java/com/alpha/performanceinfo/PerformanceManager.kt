@@ -9,11 +9,12 @@ import android.os.*
 import android.text.TextUtils
 import android.util.Log
 import android.view.Choreographer
-import com.alpha.performanceinfo.Utils
 import com.alpha.performanceinfo.PerformanceInfoWindowUtil
+import com.alpha.performanceinfo.Utils
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
+import java.io.RandomAccessFile
 
 /**
  * Created by chenqiao on 1/13/21.
@@ -59,9 +60,6 @@ class PerformanceManager private constructor() : ActivityLifecycleCallbacks {
     private var mem: Float = 0f
     private var fps: Float = 0f
 
-    fun init(context: Context) {
-
-
 
     fun init(context: Application) {
 
@@ -85,9 +83,9 @@ class PerformanceManager private constructor() : ActivityLifecycleCallbacks {
     }
 
     private fun startRefresh() {
-        val refreshRunnable = object : Runnable{
+        val refreshRunnable = object : Runnable {
             override fun run() {
-                Log.d(TAG, "info [ " + "cpu: $cpu %, mem: $mem Mb, fps: $fps"+"]")
+                Log.d(TAG, "info [ " + "cpu: $cpu %, mem: $mem Mb, fps: $fps" + "]")
                 performanceInfoWindowUtil?.refreshInfo(cpu, mem, fps)
 
                 mainHandler.postDelayed(this, 1000)
@@ -100,12 +98,12 @@ class PerformanceManager private constructor() : ActivityLifecycleCallbacks {
 
     private fun startMonitorCpuInfo() {
 
-        val cpuRunnable = object : Runnable{
+        val cpuRunnable = object : Runnable {
             override fun run() {
-//                val cpuDataForO = if (aboveAndroidO) Utils.getCpuDataForO() else Utils.getCPUData()
-                val cpuDataForO = getCpuDataForO()
-                cpu = cpuDataForO
-                Log.d(TAG, "cpu: " + cpuDataForO + "%")
+                val cpuDataFor = if (aboveAndroidO) Utils.getCpuDataForO() else Utils.getCPUData()
+//                val cpuDataFor = if (aboveAndroidO) getCpuDataForO() else getCPUData()
+                cpu = cpuDataFor
+                Log.d(TAG, "cpu: " + cpuDataFor + "%")
                 mHandler?.postDelayed(this, 1000)
             }
         }
@@ -116,7 +114,7 @@ class PerformanceManager private constructor() : ActivityLifecycleCallbacks {
 
     private val fpsCallback = FpsCallback()
     private fun startMonitorFpsInfo() {
-        val fpsRunnable = object : Runnable{
+        val fpsRunnable = object : Runnable {
             override fun run() {
                 val f = fpsCallback.fps
                 Log.d(TAG, "fps : " + f)
@@ -130,7 +128,7 @@ class PerformanceManager private constructor() : ActivityLifecycleCallbacks {
     }
 
     private fun startMonitorMemInfo() {
-        val memRunnable = object : Runnable{
+        val memRunnable = object : Runnable {
             override fun run() {
                 val m = getMemoryData()
                 mem = m
@@ -142,7 +140,6 @@ class PerformanceManager private constructor() : ActivityLifecycleCallbacks {
 
         mHandler?.postDelayed(memRunnable, 2000)
     }
-
 
 
     private fun getMemoryData(): Float {
@@ -224,45 +221,51 @@ class PerformanceManager private constructor() : ActivityLifecycleCallbacks {
     }
 
 
+    private var mProcStatFile: RandomAccessFile? = null
+    private var mAppStatFile: RandomAccessFile? = null
+    private var mLastCpuTime: Long? = null
+    private var mLastAppCpuTime: Long? = null
+
     /**
      * 8.0一下获取cpu的方式
      *
      * @return
      */
-    //    private float getCPUData() {
-    //        long cpuTime;
-    //        long appTime;
-    //        float value = 0.0f;
-    //        try {
-    //            if (mProcStatFile == null || mAppStatFile == null) {
-    //                mProcStatFile = new RandomAccessFile("/proc/stat", "r");
-    //                mAppStatFile = new RandomAccessFile("/proc/" + android.os.Process.myPid() + "/stat", "r");
-    //            } else {
-    //                mProcStatFile.seek(0L);
-    //                mAppStatFile.seek(0L);
-    //            }
-    //            String procStatString = mProcStatFile.readLine();
-    //            String appStatString = mAppStatFile.readLine();
-    //            String procStats[] = procStatString.split(" ");
-    //            String appStats[] = appStatString.split(" ");
-    //            cpuTime = Long.parseLong(procStats[2]) + Long.parseLong(procStats[3])
-    //                    + Long.parseLong(procStats[4]) + Long.parseLong(procStats[5])
-    //                    + Long.parseLong(procStats[6]) + Long.parseLong(procStats[7])
-    //                    + Long.parseLong(procStats[8]);
-    //            appTime = Long.parseLong(appStats[13]) + Long.parseLong(appStats[14]);
-    //            if (mLastCpuTime == null && mLastAppCpuTime == null) {
-    //                mLastCpuTime = cpuTime;
-    //                mLastAppCpuTime = appTime;
-    //                return value;
-    //            }
-    //            value = ((float) (appTime - mLastAppCpuTime) / (float) (cpuTime - mLastCpuTime)) * 100f;
-    //            mLastCpuTime = cpuTime;
-    //            mLastAppCpuTime = appTime;
-    //        } catch (Exception e) {
-    //            e.printStackTrace();
-    //        }
-    //        return value;
-    //    }
+    fun getCPUData(): Float {
+        val cpuTime: Long
+        val appTime: Long
+        var value = 0.0f
+        try {
+            if (mProcStatFile == null || mAppStatFile == null) {
+                mProcStatFile = RandomAccessFile("/proc/stat", "r")
+                mAppStatFile = RandomAccessFile("/proc/" + Process.myPid() + "/stat", "r")
+            } else {
+                mProcStatFile!!.seek(0L)
+                mAppStatFile!!.seek(0L)
+            }
+            val procStatString = mProcStatFile!!.readLine()
+            val appStatString = mAppStatFile!!.readLine()
+            val procStats = procStatString.split(" ".toRegex()).toTypedArray()
+            val appStats = appStatString.split(" ".toRegex()).toTypedArray()
+            cpuTime =
+                procStats[2].toLong() + procStats[3].toLong() + procStats[4].toLong() + procStats[5].toLong() + procStats[6].toLong() + procStats[7].toLong() + procStats[8].toLong()
+            appTime = appStats[13].toLong() + appStats[14].toLong()
+            if (mLastCpuTime == null && mLastAppCpuTime == null) {
+                mLastCpuTime = cpuTime
+                mLastAppCpuTime = appTime
+                return value
+            }
+            value =
+                (appTime - mLastAppCpuTime!!).toFloat() / (cpuTime - mLastCpuTime!!).toFloat() * 100f
+            mLastCpuTime = cpuTime
+            mLastAppCpuTime = appTime
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+        }
+        return value
+    }
+
+
     private fun getCPUIndex(line: String): Int {
         if (line.contains("CPU")) {
             val titles = line.split("\\s+".toRegex()).toTypedArray()
@@ -291,7 +294,7 @@ class PerformanceManager private constructor() : ActivityLifecycleCallbacks {
     }
 
     override fun onActivityPaused(activity: Activity) {
-        if (performanceInfoWindowUtil != null){
+        if (performanceInfoWindowUtil != null) {
             performanceInfoWindowUtil?.hideAllView()
             performanceInfoWindowUtil = null
         }
@@ -313,7 +316,7 @@ class PerformanceManager private constructor() : ActivityLifecycleCallbacks {
     }
 
     override fun onActivityResumed(activity: Activity) {
-        if (performanceInfoWindowUtil != null){
+        if (performanceInfoWindowUtil != null) {
             performanceInfoWindowUtil?.hideAllView()
             performanceInfoWindowUtil = null
         }

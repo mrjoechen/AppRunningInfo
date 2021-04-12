@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="horizontal"
-    android:layout_width="100dp"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center"
     android:background="#00000000">
@@ -11,19 +11,22 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="cpu"
-        android:layout_margin="5dp"/>
+        android:layout_margin="5dp"
+        android:gravity="center"/>
 
     <TextView
         android:id="@+id/tv_mem"
-        android:layout_width="wrap_content"
+        android:layout_width="150dp"
         android:layout_height="wrap_content"
         android:text="mem"
-        android:layout_margin="5dp"/>
+        android:layout_margin="5dp"
+        android:gravity="center"/>
     <TextView
         android:id="@+id/tv_fps"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="fps"
-        android:layout_margin="5dp"/>
+        android:layout_margin="5dp"
+        android:gravity="center"/>
 
 </LinearLayout>
